@@ -31,13 +31,11 @@ function buildVocalesManifest() {
     .sort((a, b) => a.datetime.localeCompare(b.datetime));
 }
 
-function copyDir(src, dest) {
+function copyVocales(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   for (const name of fs.readdirSync(src)) {
-    const from = path.join(src, name);
-    const to = path.join(dest, name);
-    if (fs.statSync(from).isDirectory()) copyDir(from, to);
-    else fs.copyFileSync(from, to);
+    if (!name.toLowerCase().endsWith('.mp4')) continue;
+    fs.copyFileSync(path.join(src, name), path.join(dest, name));
   }
 }
 
@@ -54,7 +52,7 @@ fs.writeFileSync(path.join(distDir, 'index.html'), html, 'utf8');
 
 if (fs.existsSync(vocalesDir)) {
   fs.rmSync(distVocales, { recursive: true, force: true });
-  copyDir(vocalesDir, distVocales);
+  copyVocales(vocalesDir, distVocales);
 }
 
 // local single-file build too

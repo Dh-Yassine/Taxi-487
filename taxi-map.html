@@ -10,11 +10,12 @@
     :root {
       --bg: #0f1419; --surface: #1a2332; --surface2: #243044; --border: #2d3a4f;
       --text: #e8edf4; --muted: #8b9cb3; --accent: #3b82f6; --route: #2563eb;
-      --parked: #8b5cf6; --idle: #f59e0b; --start: #22c55e; --end: #ef4444; --drive: #06b6d4;
+      --parked: #8b5cf6; --idle: #f59e0b; --start: #22c55e; --end: #ef4444; --drive: #06b6d4; --vocal: #ec4899;
       --header-h: 52px; --panel-w: 360px;
     }
     html, body { height: 100%; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
-    #app { display: flex; flex-direction: column; height: 100%; }
+    #app { display: none; flex-direction: column; height: 100%; }
+    #app.ready { display: flex; }
     #map-loading {
       position: absolute; inset: 0; z-index: 700; display: grid; place-items: center;
       background: rgba(15,20,25,.55); pointer-events: none; transition: opacity .3s;
@@ -41,6 +42,24 @@
     }
     .icon-btn:hover { background: var(--border); }
     .icon-btn.active { background: var(--accent); border-color: var(--accent); }
+    .lang-switch {
+      display: flex; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(59,130,246,.25);
+    }
+    .lang-switch button {
+      padding: 6px 12px; border: none; background: var(--surface2); color: var(--muted);
+      font-size: 13px; font-weight: 700; cursor: pointer; min-width: 44px;
+    }
+    .lang-switch button.active { background: var(--accent); color: #fff; }
+    body.rtl { direction: rtl; }
+    body.rtl header { flex-direction: row-reverse; }
+    body.rtl #panel { border-left: none; border-right: 1px solid var(--border); }
+    body.rtl .list-item .duration { margin-left: 0; margin-right: auto; }
+    body.rtl .play-btns { margin-left: 0; margin-right: auto; }
+    @media (max-width: 768px) {
+      body.rtl #panel { right: auto; left: 0; transform: translateX(-100%); }
+      body.rtl #panel.open { transform: translateX(0); }
+    }
     #main { display: flex; flex: 1; min-height: 0; position: relative; }
     #map-wrap { flex: 1; min-width: 0; position: relative; min-height: 0; }
     #map { position: absolute; inset: 0; background: #1a1a2e; }
@@ -97,6 +116,7 @@
     .tag.parked { background: rgba(139,92,246,.2); color: #c4b5fd; }
     .tag.idle { background: rgba(245,158,11,.2); color: #fcd34d; }
     .tag.drive { background: rgba(6,182,212,.2); color: #67e8f9; }
+    .tag.vocal { background: rgba(236,72,153,.2); color: #f9a8d4; }
     .list-item .duration { font-size: 14px; font-weight: 700; margin-left: auto; }
     .list-item .times { font-size: 11px; color: var(--muted); line-height: 1.5; }
     .list-item .coords { font-size: 10px; color: var(--muted); font-family: ui-monospace, monospace; margin-top: 2px; }
@@ -117,6 +137,22 @@
       flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center;
     }
     #err-screen.show { display: flex; }
+    #gate-screen {
+      position: fixed; inset: 0; z-index: 10000; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px;
+    }
+    #gate-screen.hidden { display: none; }
+    #gate-screen h2 { font-size: 22px; }
+    #gate-screen p { color: var(--muted); font-size: 14px; }
+    #gate-pass {
+      padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font-size: 16px; width: min(280px, 100%); text-align: center;
+    }
+    #gate-enter {
+      padding: 12px 32px; border-radius: 10px; border: none; background: var(--accent);
+      color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    #gate-error { color: #f87171; font-size: 13px; min-height: 18px; }
     .leaflet-popup-content-wrapper { border-radius: 10px; }
     .popup-title { font-weight: 700; margin-bottom: 6px; font-size: 14px; }
     .popup-row { font-size: 12px; line-height: 1.6; color: #334155; }
@@ -133,6 +169,16 @@
     .endpoint.start { background: var(--start); }
     .endpoint.end { background: var(--end); }
     .position-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(59,130,246,.35); }
+    .vocal-marker { background: none !important; border: none !important; }
+    .vocal-pin {
+      width: 30px; height: 30px; border-radius: 50%; background: var(--vocal); border: 2px solid #fff;
+      box-shadow: 0 2px 10px rgba(236,72,153,.5); display: grid; place-items: center; font-size: 14px;
+    }
+    .list-item .play-vocal {
+      margin-top: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text); font-size: 11px; cursor: pointer; width: 100%;
+    }
+    .list-item audio, .popup-audio { width: 100%; margin-top: 8px; height: 32px; }
     .mobile-stats { display: none; position: absolute; top: 8px; left: 8px; z-index: 800; flex-direction: column; gap: 4px; pointer-events: none; max-width: calc(100% - 60px); }
     .mobile-stats .stat-chip { font-size: 10px; padding: 3px 6px; background: rgba(26,35,50,.92); backdrop-filter: blur(4px); }
     .panel-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,.45); z-index: 850; }
@@ -149,49 +195,67 @@
   </style>
 </head>
 <body>
-  <div id="err-screen"><h2>No GPS data</h2><p>This file should contain embedded tracker data. Re-build from taxi.txt if needed.</p></div>
+  <div id="gate-screen">
+    <div class="lang-switch" id="gate-lang-switch" style="margin-bottom:8px">
+      <button type="button" id="gate-lang-fr" class="active">FR</button>
+      <button type="button" id="gate-lang-ar">عربي</button>
+    </div>
+    <h2 data-i18n="gateTitle">Carte Taxi 487</h2>
+    <p data-i18n="gateSubtitle">Entrez le mot de passe pour voir la trajectoire</p>
+    <input type="password" id="gate-pass" data-i18n-placeholder="gatePlaceholder" placeholder="Mot de passe" autocomplete="off">
+    <button id="gate-enter" data-i18n="gateEnter">Entrer</button>
+    <p id="gate-error"></p>
+  </div>
+
+  <div id="err-screen"><h2 data-i18n="errTitle">Données indisponibles</h2><p data-i18n="errMsg">Rechargez la page. Toutes les données sont intégrées dans la page.</p></div>
 
   <div id="app">
     <header>
-      <button class="icon-btn" id="panel-toggle" title="Panel">☰</button>
+      <div class="lang-switch" id="lang-switch">
+        <button type="button" id="lang-fr" class="active">FR</button>
+        <button type="button" id="lang-ar">عربي</button>
+      </div>
+      <button class="icon-btn" id="panel-toggle" title="Menu">☰</button>
       <h1 id="vehicle-name">Taxi</h1>
       <span class="badge" id="trip-date"></span>
       <div class="header-stats" id="header-stats"></div>
-      <button class="icon-btn" id="timeline-toggle" title="Timeline">⏱</button>
-      <button class="icon-btn" id="fit-btn" title="Fit route">⌖</button>
+      <button class="icon-btn" id="timeline-toggle" title="Chronologie">⏱</button>
+      <button class="icon-btn" id="fit-btn" title="Centrer">⌖</button>
     </header>
     <div id="main">
       <div id="map-wrap">
         <div id="map"></div>
-        <div id="map-loading"><span>Loading GPS data…</span></div>
+        <div id="map-loading"><span data-i18n="loading">Chargement…</span></div>
       </div>
       <div class="mobile-stats" id="mobile-stats"></div>
       <div class="panel-overlay" id="panel-overlay"></div>
       <aside id="panel">
         <div class="panel-tabs">
-          <button class="active" data-tab="time">Time</button>
-          <button data-tab="stops">Stops</button>
-          <button data-tab="drives">Drives</button>
-          <button data-tab="summary">Info</button>
+          <button class="active" data-tab="time" data-i18n="tabTime">Heure</button>
+          <button data-tab="stops" data-i18n="tabStops">Arrêts</button>
+          <button data-tab="drives" data-i18n="tabDrives">Trajets</button>
+          <button data-tab="vocales" data-i18n="tabVocales">Vocales</button>
+          <button data-tab="summary" data-i18n="tabInfo">Infos</button>
         </div>
         <div class="panel-body">
           <div class="panel-section active" id="tab-time">
             <div class="interval-box">
-              <h3>Time interval</h3>
+              <h3 data-i18n="intervalTitle">Plage horaire</h3>
               <div class="time-fields">
-                <label>From<input type="time" id="interval-from" step="60"></label>
-                <label>To<input type="time" id="interval-to" step="60"></label>
+                <label><span data-i18n="from">De</span><input type="time" id="interval-from" step="60"></label>
+                <label><span data-i18n="to">À</span><input type="time" id="interval-to" step="60"></label>
               </div>
               <div class="preset-grid" id="preset-grid"></div>
               <div class="interval-actions">
-                <button id="apply-interval">Apply</button>
-                <button id="reset-interval">Full trip</button>
+                <button id="apply-interval" data-i18n="apply">Appliquer</button>
+                <button id="reset-interval" data-i18n="fullTrip">Journée complète</button>
               </div>
               <div class="interval-info" id="interval-info"></div>
             </div>
           </div>
           <div class="panel-section" id="tab-stops"></div>
           <div class="panel-section" id="tab-drives"></div>
+          <div class="panel-section" id="tab-vocales"></div>
           <div class="panel-section" id="tab-summary"></div>
         </div>
       </aside>
@@ -201,457 +265,14 @@
         <span class="time-display" id="time-display">—</span>
         <span class="speed-display" id="speed-display"></span>
         <div class="play-btns">
-          <button id="play-btn" class="primary">▶ Play</button>
-          <button id="pause-btn">⏸</button>
+          <button id="play-btn" class="primary" data-i18n="play">▶ Lire</button>
+          <button id="pause-btn" data-i18n="pause">⏸ Pause</button>
         </div>
       </div>
       <input type="range" id="time-slider" min="0" max="0" value="0">
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script>
-    let rawData, viewData, map, layers = {}, positionMarker, playTimer = null, currentIndex = 0;
-    let mapReady = false;
-    let tripBounds = { minMs: 0, maxMs: 0 }, filterStartMs = 0, filterEndMs = 0;
-    let uiBound = false, toggleState = { route: true, stops: true, drives: false, parkedOnly: false };
-
-    const $ = id => document.getElementById(id);
-
-    function parseDate(s) { return new Date(String(s).replace(' ', 'T')); }
-    function isParked(s) { return s.params && s.params.acc === '0'; }
-    function overlaps(startMs, endMs, aStart, aEnd) { return aStart <= endMs && aEnd >= startMs; }
-
-    function timeToInput(ms) {
-      const d = new Date(ms);
-      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-    }
-
-    function inputToMs(timeStr, dayAnchor) {
-      const [h, m] = timeStr.split(':').map(Number);
-      const d = new Date(dayAnchor);
-      d.setHours(h, m, 0, 0);
-      return d.getTime();
-    }
-
-    function formatDuration(sec) {
-      if (sec < 60) return sec + ' S';
-      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-      if (h) return `${h} H ${m} Min ${s} S`;
-      return `${m} Min ${s} S`;
-    }
-
-    function parseDuration(str) {
-      if (!str) return 0;
-      let sec = 0;
-      const h = str.match(/(\d+)\s*H/i); if (h) sec += +h[1] * 3600;
-      const m = str.match(/(\d+)\s*Min/i); if (m) sec += +m[1] * 60;
-      const s = str.match(/(\d+)\s*S/i); if (s) sec += +s[1];
-      return sec;
-    }
-
-    function haversineKm(a, b) {
-      const R = 6371, toR = x => x * Math.PI / 180;
-      const dLat = toR(+b.lat - +a.lat), dLng = toR(+b.lng - +a.lng);
-      const lat1 = toR(+a.lat), lat2 = toR(+b.lat);
-      const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
-      return 2 * R * Math.asin(Math.sqrt(h));
-    }
-
-    function filterData(raw, startMs, endMs) {
-      const fullRoute = raw.route || [];
-      const route = fullRoute.filter(p => {
-        const t = parseDate(p.dt_tracker).getTime();
-        return t >= startMs && t <= endMs;
-      });
-      const stops = (raw.stops || []).filter(s =>
-        overlaps(startMs, endMs, parseDate(s.dt_start).getTime(), parseDate(s.dt_end).getTime())
-      );
-      const drives = (raw.drives || []).filter(d =>
-        overlaps(startMs, endMs, parseDate(d.dt_start).getTime(), parseDate(d.dt_end).getTime())
-      );
-
-      let dist = 0;
-      for (let i = 1; i < route.length; i++) dist += haversineKm(route[i-1], route[i]);
-      const topSpeed = route.reduce((m, p) => Math.max(m, +p.speed || 0), 0);
-      const stopSec = stops.reduce((s, x) => s + parseDuration(x.duration), 0);
-      const driveSec = drives.reduce((s, x) => s + parseDuration(x.duration), 0);
-      const driveDist = drives.reduce((s, x) => s + (+x.route_length || 0), 0);
-
-      return {
-        ...raw, route, stops, drives, _fullRoute: fullRoute,
-        _stats: {
-          distance: Math.round((driveDist || dist) * 100) / 100,
-          topSpeed, stopSec, driveSec,
-          parked: stops.filter(isParked).length
-        }
-      };
-    }
-
-    function stopPopup(stop, i) {
-      const p = isParked(stop);
-      return `<div class="popup-title">${p ? '🅿️ Parked' : '⏸ Stopped'} #${i+1}</div>
-        <div class="popup-row"><strong>Duration:</strong> ${stop.duration}</div>
-        <div class="popup-row"><strong>From:</strong> ${stop.dt_start}</div>
-        <div class="popup-row"><strong>To:</strong> ${stop.dt_end}</div>
-        <div class="popup-row"><strong>Ignition:</strong> ${p ? 'Off' : 'On'}</div>`;
-    }
-
-    function drivePopup(d, i) {
-      return `<div class="popup-title">🚗 Drive #${i+1}</div>
-        <div class="popup-row"><strong>Duration:</strong> ${d.duration}</div>
-        <div class="popup-row"><strong>${d.dt_start}</strong> → ${d.dt_end}</div>
-        <div class="popup-row"><strong>Distance:</strong> ${d.route_length} km · max ${d.top_speed} km/h</div>`;
-    }
-
-    function pointPopup(p) {
-      return `<div class="popup-row"><strong>Time:</strong> ${p.dt_tracker}</div>
-        <div class="popup-row"><strong>Speed:</strong> ${p.speed} km/h · ignition ${p.params?.acc === '1' ? 'on' : 'off'}</div>`;
-    }
-
-    function makeStopIcon(stop, i) {
-      const cls = isParked(stop) ? 'parked' : 'idle';
-      return L.divIcon({
-        className: 'stop-marker',
-        html: `<div class="stop-pin ${cls}"><span>${i+1}</span></div>`,
-        iconSize: [28,28], iconAnchor: [14,28], popupAnchor: [0,-28]
-      });
-    }
-
-    function makeTiles(url, opts) {
-      return L.tileLayer(url, {
-        maxZoom: 19, maxNativeZoom: 19, keepBuffer: 8, updateWhenIdle: false,
-        updateWhenZooming: true, detectRetina: true, crossOrigin: true, ...opts
-      });
-    }
-
-    function initMap() {
-      if (mapReady) return;
-      mapReady = true;
-      map = L.map('map', { zoomControl: true, fadeAnimation: true, zoomAnimationThreshold: 6 })
-        .setView([35.674, 10.087], 13);
-
-      const carto = makeTiles('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abcd', attribution: '&copy; OSM &copy; CARTO'
-      });
-      const osm = makeTiles('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        subdomains: 'abc', attribution: '&copy; OpenStreetMap'
-      });
-      carto.addTo(map);
-      let switched = false;
-      carto.on('tileerror', () => {
-        if (switched) return;
-        switched = true;
-        map.removeLayer(carto);
-        osm.addTo(map);
-      });
-
-      layers.route = L.layerGroup().addTo(map);
-      layers.stops = L.layerGroup().addTo(map);
-      layers.drives = L.layerGroup();
-      layers.position = L.layerGroup().addTo(map);
-      positionMarker = L.marker([0,0], {
-        icon: L.divIcon({ className: '', html: '<div class="position-dot"></div>', iconSize: [16,16], iconAnchor: [8,8] })
-      });
-
-      requestAnimationFrame(() => map.invalidateSize());
-    }
-
-    function renderMap() {
-      pausePlay();
-      layers.route.clearLayers(); layers.stops.clearLayers(); layers.drives.clearLayers(); layers.position.clearLayers();
-
-      const route = viewData.route || [];
-      const stops = viewData.stops || [];
-      const drives = viewData.drives || [];
-      const fullRoute = viewData._fullRoute || route;
-      const latlngs = route.map(p => [+p.lat, +p.lng]);
-
-      if (latlngs.length) {
-        if (toggleState.route) {
-          L.polyline(latlngs, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(layers.route);
-          const start = route[0], end = route[route.length - 1];
-          L.marker([+start.lat, +start.lng], {
-            icon: L.divIcon({ className: 'endpoint-marker', html: '<div class="endpoint start">S</div>', iconSize: [32,32], iconAnchor: [16,16] })
-          }).bindPopup(`<div class="popup-title">Interval start</div><div class="popup-row">${start.dt_tracker}</div>`).addTo(layers.route);
-          L.marker([+end.lat, +end.lng], {
-            icon: L.divIcon({ className: 'endpoint-marker', html: '<div class="endpoint end">E</div>', iconSize: [32,32], iconAnchor: [16,16] })
-          }).bindPopup(`<div class="popup-title">Interval end</div><div class="popup-row">${end.dt_tracker}</div>`).addTo(layers.route);
-        }
-      }
-
-      if (toggleState.stops) {
-        stops.forEach((stop, i) => {
-          if (toggleState.parkedOnly && !isParked(stop)) return;
-          const m = L.marker([+stop.lat, +stop.lng], { icon: makeStopIcon(stop, i) }).bindPopup(stopPopup(stop, i));
-          m._stopIndex = i; m.addTo(layers.stops);
-        });
-      }
-
-      if (toggleState.drives) {
-        drives.forEach((drive, i) => {
-          const seg = fullRoute.slice(drive.id_start, (drive.id_end || 0) + 1).filter(p => {
-            const t = parseDate(p.dt_tracker).getTime();
-            return t >= filterStartMs && t <= filterEndMs;
-          });
-          if (seg.length < 2) return;
-          L.polyline(seg.map(p => [+p.lat, +p.lng]), { color: '#06b6d4', weight: 5, opacity: 0.7 })
-            .bindPopup(drivePopup(drive, i)).addTo(layers.drives);
-        });
-        map.addLayer(layers.drives);
-      } else {
-        map.removeLayer(layers.drives);
-      }
-
-      if (latlngs.length) {
-        requestAnimationFrame(() => {
-          map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40], animate: false, maxZoom: 16 });
-          setTimeout(() => map.invalidateSize({ pan: false }), 150);
-        });
-      }
-      setupTimeline(route);
-      renderLists();
-      renderStats();
-    }
-
-    function renderStats() {
-      const route = viewData.route || [];
-      const stops = viewData.stops || [];
-      const st = viewData._stats || {};
-      const parked = st.parked ?? stops.filter(isParked).length;
-      const fromT = timeToInput(filterStartMs), toT = timeToInput(filterEndMs);
-      const isFull = filterStartMs <= tripBounds.minMs && filterEndMs >= tripBounds.maxMs;
-
-      $('trip-date').textContent = isFull
-        ? (route[0]?.dt_tracker?.slice(0, 10) || '')
-        : `${fromT}–${toT}`;
-
-      const chips = [
-        [`${st.distance ?? '—'} km`, 'Distance'],
-        [`${st.topSpeed ?? '—'} km/h`, 'Top'],
-        [`${stops.length} (${parked} parked)`, 'Stops'],
-        [formatDuration(st.stopSec || 0), 'Stopped'],
-        [formatDuration(st.driveSec || 0), 'Driving']
-      ];
-      const html = chips.map(([v, k]) => `<span class="stat-chip"><strong>${v}</strong> ${k}</span>`).join('');
-      $('header-stats').innerHTML = html;
-      $('mobile-stats').innerHTML = html;
-
-      $('interval-info').innerHTML = isFull
-        ? `<strong>Full trip</strong> · ${route.length} GPS points · ${stops.length} stops`
-        : `<strong>Filtered</strong> ${fromT} → ${toT}<br>${route.length} GPS points · ${stops.length} stops · ${(viewData.drives||[]).length} drives`;
-    }
-
-    function renderLists() {
-      const stops = viewData.stops || [];
-      const drives = viewData.drives || [];
-      const st = viewData._stats || {};
-
-      $('tab-stops').innerHTML = stops.length ? stops.map((s, i) => {
-        const p = isParked(s);
-        return `<div class="list-item" data-stop="${i}"><div class="row1">
-          <span class="tag ${p ? 'parked' : 'idle'}">${p ? 'Parked' : 'Idle'}</span>
-          <span class="duration">${s.duration}</span></div>
-          <div class="times">${s.dt_start}<br>→ ${s.dt_end}</div>
-          <div class="coords">${s.lat}, ${s.lng}</div></div>`;
-      }).join('') : '<p style="color:var(--muted);font-size:13px">No stops in this interval.</p>';
-
-      $('tab-drives').innerHTML = drives.length ? drives.map((d, i) =>
-        `<div class="list-item" data-drive="${i}"><div class="row1">
-          <span class="tag drive">Drive</span><span class="duration">${d.duration}</span></div>
-          <div class="times">${d.dt_start}<br>→ ${d.dt_end}</div>
-          <div class="coords">${d.route_length} km · max ${d.top_speed} km/h</div></div>`
-      ).join('') : '<p style="color:var(--muted);font-size:13px">No drives in this interval.</p>';
-
-      $('tab-summary').innerHTML = `
-        <div class="summary-grid">
-          <div class="summary-card"><div class="label">Distance</div><div class="value">${st.distance ?? '—'} km</div></div>
-          <div class="summary-card"><div class="label">GPS points</div><div class="value">${(viewData.route||[]).length}</div></div>
-          <div class="summary-card"><div class="label">Top speed</div><div class="value">${st.topSpeed ?? '—'} km/h</div></div>
-          <div class="summary-card"><div class="label">Stops</div><div class="value">${stops.length}</div></div>
-          <div class="summary-card"><div class="label">Parked</div><div class="value">${st.parked ?? 0}</div></div>
-          <div class="summary-card"><div class="label">Stop time</div><div class="value" style="font-size:12px">${formatDuration(st.stopSec||0)}</div></div>
-          <div class="summary-card"><div class="label">Drive time</div><div class="value" style="font-size:12px">${formatDuration(st.driveSec||0)}</div></div>
-          <div class="summary-card"><div class="label">Vehicle</div><div class="value" style="font-size:13px">${viewData.name||'—'}</div></div>
-        </div>
-        <div class="legend">
-          <div class="legend-item"><span class="legend-dot" style="background:var(--route)"></span> Route</div>
-          <div class="legend-item"><span class="legend-dot" style="background:var(--parked)"></span> Parked</div>
-          <div class="legend-item"><span class="legend-dot" style="background:var(--idle)"></span> Idle stop</div>
-        </div>
-        <div class="toggles">
-          <label class="toggle-row"><span>Route line</span><input type="checkbox" id="toggle-route" ${toggleState.route?'checked':''}></label>
-          <label class="toggle-row"><span>Stop markers</span><input type="checkbox" id="toggle-stops" ${toggleState.stops?'checked':''}></label>
-          <label class="toggle-row"><span>Parked only</span><input type="checkbox" id="toggle-parked-only" ${toggleState.parkedOnly?'checked':''}></label>
-          <label class="toggle-row"><span>Drive segments</span><input type="checkbox" id="toggle-drives" ${toggleState.drives?'checked':''}></label>
-        </div>`;
-    }
-
-    function setupTimeline(route) {
-      const slider = $('time-slider');
-      slider.max = Math.max(0, route.length - 1);
-      slider.value = 0;
-      currentIndex = 0;
-      if (route.length) updatePosition(0, route);
-      else { $('time-display').textContent = '—'; $('speed-display').textContent = ''; positionMarker.remove(); }
-    }
-
-    function updatePosition(i, route) {
-      if (!route?.length) return;
-      currentIndex = i;
-      const p = route[i];
-      positionMarker.setLatLng([+p.lat, +p.lng]);
-      if (!layers.position.hasLayer(positionMarker)) positionMarker.addTo(layers.position);
-      positionMarker.bindPopup(pointPopup(p));
-      $('time-display').textContent = p.dt_tracker;
-      $('speed-display').textContent = `${p.speed} km/h · ignition ${p.params?.acc==='1'?'on':'off'}`;
-      $('time-slider').value = i;
-    }
-
-    function buildPresets() {
-      const min = tripBounds.minMs, max = tripBounds.maxMs, span = max - min;
-      const presets = [{ id: 'full', label: 'Full trip', start: min, end: max }];
-      for (let i = 0; i < 4; i++) {
-        const s = min + span * i / 4, e = min + span * (i + 1) / 4;
-        presets.push({ id: 'q' + i, label: timeToInput(s) + '–' + timeToInput(e), start: s, end: e });
-      }
-      const noon = new Date(min); noon.setHours(12, 0, 0, 0);
-      if (noon.getTime() > min && noon.getTime() < max) {
-        presets.push({ id: 'am', label: 'Morning', start: min, end: noon.getTime() });
-        presets.push({ id: 'pm', label: 'Afternoon', start: noon.getTime(), end: max });
-      }
-      $('preset-grid').innerHTML = presets.map(p =>
-        `<button class="preset-btn" data-start="${p.start}" data-end="${p.end}">${p.label}</button>`
-      ).join('');
-    }
-
-    function applyInterval(startMs, endMs) {
-      if (startMs > endMs) [startMs, endMs] = [endMs, startMs];
-      startMs = Math.max(tripBounds.minMs, startMs);
-      endMs = Math.min(tripBounds.maxMs, endMs);
-      filterStartMs = startMs; filterEndMs = endMs;
-      $('interval-from').value = timeToInput(startMs);
-      $('interval-to').value = timeToInput(endMs);
-      document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active',
-        +b.dataset.start === startMs && +b.dataset.end === endMs));
-      viewData = filterData(rawData, startMs, endMs);
-      renderMap();
-    }
-
-    function bindUIOnce() {
-      if (uiBound) return;
-      uiBound = true;
-
-      document.querySelector('.panel-tabs').onclick = e => {
-        const btn = e.target.closest('button[data-tab]');
-        if (!btn) return;
-        document.querySelectorAll('.panel-tabs button').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
-        btn.classList.add('active');
-        $('tab-' + btn.dataset.tab).classList.add('active');
-      };
-
-      $('preset-grid').onclick = e => {
-        const btn = e.target.closest('.preset-btn');
-        if (!btn) return;
-        applyInterval(+btn.dataset.start, +btn.dataset.end);
-      };
-
-      $('apply-interval').onclick = () => {
-        const day = new Date(tripBounds.minMs);
-        applyInterval(inputToMs($('interval-from').value, day), inputToMs($('interval-to').value, day));
-      };
-
-      $('reset-interval').onclick = () => applyInterval(tripBounds.minMs, tripBounds.maxMs);
-
-      $('tab-stops').onclick = e => {
-        const el = e.target.closest('[data-stop]');
-        if (!el) return;
-        const stop = viewData.stops[+el.dataset.stop];
-        map.setView([+stop.lat, +stop.lng], 16);
-        layers.stops.eachLayer(m => { if (m._stopIndex === +el.dataset.stop) m.openPopup(); });
-        closePanelMobile();
-      };
-
-      $('tab-drives').onclick = e => {
-        const el = e.target.closest('[data-drive]');
-        if (!el) return;
-        const drive = viewData.drives[+el.dataset.drive];
-        const seg = (viewData._fullRoute || []).slice(drive.id_start, (drive.id_end || 0) + 1)
-          .filter(p => { const t = parseDate(p.dt_tracker).getTime(); return t >= filterStartMs && t <= filterEndMs; });
-        if (seg.length >= 2) map.fitBounds(L.latLngBounds(seg.map(p => [+p.lat, +p.lng])), { padding: [30, 30] });
-        closePanelMobile();
-      };
-
-      $('tab-summary').onchange = e => {
-        const id = e.target.id;
-        if (id === 'toggle-route') { toggleState.route = e.target.checked; renderMap(); }
-        if (id === 'toggle-stops') { toggleState.stops = e.target.checked; renderMap(); }
-        if (id === 'toggle-parked-only') { toggleState.parkedOnly = e.target.checked; renderMap(); }
-        if (id === 'toggle-drives') { toggleState.drives = e.target.checked; renderMap(); }
-      };
-
-      $('fit-btn').onclick = () => {
-        const ll = (viewData.route || []).map(p => [+p.lat, +p.lng]);
-        if (ll.length) map.fitBounds(L.latLngBounds(ll), { padding: [40, 40] });
-      };
-
-      const panel = $('panel'), overlay = $('panel-overlay');
-      $('panel-toggle').onclick = () => {
-        panel.classList.toggle('open');
-        overlay.classList.toggle('visible', panel.classList.contains('open'));
-      };
-      overlay.onclick = closePanelMobile;
-
-      $('timeline-toggle').onclick = () => {
-        $('timeline-bar').classList.toggle('hidden');
-        $('timeline-toggle').classList.toggle('active');
-        setTimeout(() => map.invalidateSize(), 300);
-      };
-
-      $('time-slider').oninput = () => { pausePlay(); updatePosition(+$('time-slider').value, viewData.route); };
-      $('play-btn').onclick = () => {
-        if (playTimer) return;
-        const route = viewData.route || [];
-        playTimer = setInterval(() => {
-          if (currentIndex + 1 >= route.length) { pausePlay(); return; }
-          updatePosition(currentIndex + 1, route);
-          if (currentIndex % 5 === 0) map.panTo([+route[currentIndex].lat, +route[currentIndex].lng], { animate: true, duration: 0.3 });
-        }, 120);
-      };
-      $('pause-btn').onclick = pausePlay;
-    }
-
-    function closePanelMobile() {
-      if (window.innerWidth <= 768) { $('panel').classList.remove('open'); $('panel-overlay').classList.remove('visible'); }
-    }
-
-    function pausePlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } }
-
-    function startApp(data) {
-      rawData = data;
-      const route = data.route || [];
-      if (!route.length) { $('err-screen').classList.add('show'); return; }
-
-      tripBounds.minMs = parseDate(route[0].dt_tracker).getTime();
-      tripBounds.maxMs = parseDate(route[route.length - 1].dt_tracker).getTime();
-      filterStartMs = tripBounds.minMs;
-      filterEndMs = tripBounds.maxMs;
-
-      $('vehicle-name').textContent = data.name || 'Vehicle';
-      $('interval-from').value = timeToInput(tripBounds.minMs);
-      $('interval-to').value = timeToInput(tripBounds.maxMs);
-
-      if (!mapReady) initMap();
-      bindUIOnce();
-      buildPresets();
-      viewData = filterData(rawData, filterStartMs, filterEndMs);
-      $('map-loading').classList.add('hidden');
-      renderMap();
-    }
-
-    initMap();
-  </script>
   <script type="application/json" id="taxi-data">{
     "route": [
         {
@@ -98872,18 +98493,688 @@
     "layers": [],
     "play": []
 }</script>
+  <script type="application/json" id="vocales-data">[{"file":"vocales/2026-06-12_17-38_02m49s.mp4","datetime":"2026-06-12 17:38:00","durationLabel":"02:49","label":"2026-06-12 17:38"},{"file":"vocales/2026-06-12_17-38_02m49s_v2.mp4","datetime":"2026-06-12 17:38:00","durationLabel":"02:49","label":"2026-06-12 17:38"},{"file":"vocales/2026-06-12_17-48_01m23s.mp4","datetime":"2026-06-12 17:48:00","durationLabel":"01:23","label":"2026-06-12 17:48"},{"file":"vocales/2026-06-12_17-57_04m41s.mp4","datetime":"2026-06-12 17:57:00","durationLabel":"04:41","label":"2026-06-12 17:57"},{"file":"vocales/2026-06-12_18-04_07m19s.mp4","datetime":"2026-06-12 18:04:00","durationLabel":"07:19","label":"2026-06-12 18:04"},{"file":"vocales/2026-06-12_18-14_05m18s.mp4","datetime":"2026-06-12 18:14:00","durationLabel":"05:18","label":"2026-06-12 18:14"},{"file":"vocales/2026-06-12_18-20_05m42s.mp4","datetime":"2026-06-12 18:20:00","durationLabel":"05:42","label":"2026-06-12 18:20"},{"file":"vocales/2026-06-12_18-20_05m42s_v2.mp4","datetime":"2026-06-12 18:20:00","durationLabel":"05:42","label":"2026-06-12 18:20"},{"file":"vocales/2026-06-12_18-28_04m47s.mp4","datetime":"2026-06-12 18:28:00","durationLabel":"04:47","label":"2026-06-12 18:28"},{"file":"vocales/2026-06-12_18-34_02m44s.mp4","datetime":"2026-06-12 18:34:00","durationLabel":"02:44","label":"2026-06-12 18:34"},{"file":"vocales/2026-06-12_18-38_06m18s.mp4","datetime":"2026-06-12 18:38:00","durationLabel":"06:18","label":"2026-06-12 18:38"},{"file":"vocales/2026-06-12_18-47_08m54s.mp4","datetime":"2026-06-12 18:47:00","durationLabel":"08:54","label":"2026-06-12 18:47"},{"file":"vocales/2026-06-12_19-00_06m57s.mp4","datetime":"2026-06-12 19:00:00","durationLabel":"06:57","label":"2026-06-12 19:00"},{"file":"vocales/2026-06-12_19-15_01m06s.mp4","datetime":"2026-06-12 19:15:00","durationLabel":"01:06","label":"2026-06-12 19:15"},{"file":"vocales/2026-06-12_19-43_01m50s.mp4","datetime":"2026-06-12 19:43:00","durationLabel":"01:50","label":"2026-06-12 19:43"},{"file":"vocales/2026-06-12_19-53_04m47s.mp4","datetime":"2026-06-12 19:53:00","durationLabel":"04:47","label":"2026-06-12 19:53"},{"file":"vocales/2026-06-12_20-00_00m04s.mp4","datetime":"2026-06-12 20:00:00","durationLabel":"00:04","label":"2026-06-12 20:00"},{"file":"vocales/2026-06-12_20-36_00m26s.mp4","datetime":"2026-06-12 20:36:00","durationLabel":"00:26","label":"2026-06-12 20:36"},{"file":"vocales/2026-06-12_20-45_00m40s.mp4","datetime":"2026-06-12 20:45:00","durationLabel":"00:40","label":"2026-06-12 20:45"},{"file":"vocales/2026-06-12_20-46_00m40s.mp4","datetime":"2026-06-12 20:46:00","durationLabel":"00:40","label":"2026-06-12 20:46"}]</script>
   <script>
-    (function () {
-      const el = document.getElementById('taxi-data');
-      if (!el) { $('err-screen').classList.add('show'); return; }
+    window.__TAXI_DATA__ = JSON.parse(document.getElementById('taxi-data').textContent);
+    window.__VOCALES_DATA__ = JSON.parse(document.getElementById('vocales-data').textContent);
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    const PASSWORD = '487';
+    const AUTH_KEY = '487_auth';
+    const LANG_KEY = '487_lang';
+
+    const I18N = {
+      fr: {
+        gateTitle: 'Carte Taxi 487', gateSubtitle: 'Entrez le mot de passe pour voir la trajectoire',
+        gatePlaceholder: 'Mot de passe', gateEnter: 'Entrer', gateWrong: 'Mot de passe incorrect',
+        errTitle: 'Données indisponibles', errMsg: 'Rechargez la page. Toutes les données sont intégrées dans la page.',
+        loading: 'Chargement des données GPS…',
+        tabTime: 'Heure', tabStops: 'Arrêts', tabDrives: 'Trajets', tabVocales: 'Vocales', tabInfo: 'Infos',
+        intervalTitle: 'Plage horaire', from: 'De', to: 'À', apply: 'Appliquer', fullTrip: 'Journée complète',
+        play: '▶ Lire', pause: '⏸ Pause',
+        statDistance: 'Distance', statTop: 'Max', statStops: 'Arrêts', statVocales: 'Vocales',
+        statStopped: 'À l\'arrêt', statDriving: 'En route', statParked: 'garés',
+        presetFull: 'Journée complète', presetMorning: 'Matin', presetAfternoon: 'Après-midi',
+        fullTripInfo: 'Journée complète', filteredInfo: 'Filtré', gpsPoints: 'points GPS',
+        stopsWord: 'arrêts', vocalesWord: 'vocales',
+        noStops: 'Aucun arrêt dans cette plage.', noDrives: 'Aucun trajet dans cette plage.',
+        noVocales: 'Aucune vocale dans cette plage.',
+        parked: 'Garé', idle: 'Au ralenti', drive: 'Trajet', vocal: 'Vocale',
+        playRecording: 'Écouter l\'enregistrement', carAt: 'Taxi à', noGps: 'Pas de position GPS',
+        lblDistance: 'Distance', lblGpsPoints: 'Points GPS', lblTopSpeed: 'Vitesse max',
+        lblStops: 'Arrêts', lblParked: 'Garé', lblStopTime: 'Temps arrêt', lblDriveTime: 'Temps route',
+        lblVehicle: 'Véhicule', lblVocales: 'Vocales',
+        legRoute: 'Trajet', legParked: 'Garé', legIdle: 'Ralenti', legVocal: 'Vocale (enregistrement)',
+        toggleRoute: 'Ligne du trajet', toggleStops: 'Marqueurs arrêts', toggleParkedOnly: 'Garés seulement',
+        toggleDrives: 'Segments trajet', toggleVocales: 'Marqueurs vocales',
+        popupParked: 'Garé', popupStopped: 'Arrêt', popupDuration: 'Durée', popupFrom: 'De', popupTo: 'À',
+        popupIgnition: 'Contact', popupOff: 'Coupé', popupOn: 'Allumé',
+        popupDrive: 'Trajet', popupDistance: 'Distance', popupTopSpeed: 'Vitesse max',
+        popupTime: 'Heure', popupSpeed: 'Vitesse', popupIgnitionShort: 'contact',
+        popupVocal: 'Vocale', popupRecorded: 'Enregistré', popupLength: 'Durée',
+        popupCarAt: 'Taxi à', popupIntervalStart: 'Début plage', popupIntervalEnd: 'Fin plage',
+        ignitionOn: 'allumé', ignitionOff: 'coupé'
+      },
+      ar: {
+        gateTitle: 'خريطة التاكسي 487', gateSubtitle: 'أدخل كلمة المرور لعرض المسار',
+        gatePlaceholder: 'كلمة المرور', gateEnter: 'دخول', gateWrong: 'كلمة مرور خاطئة',
+        errTitle: 'البيانات غير متوفرة', errMsg: 'أعد تحميل الصفحة. جميع البيانات مدمجة في الصفحة.',
+        loading: 'جاري تحميل بيانات GPS…',
+        tabTime: 'الوقت', tabStops: 'التوقفات', tabDrives: 'الرحلات', tabVocales: 'التسجيلات', tabInfo: 'معلومات',
+        intervalTitle: 'الفترة الزمنية', from: 'من', to: 'إلى', apply: 'تطبيق', fullTrip: 'اليوم كامل',
+        play: '▶ تشغيل', pause: '⏸ إيقاف',
+        statDistance: 'المسافة', statTop: 'السرعة', statStops: 'التوقفات', statVocales: 'التسجيلات',
+        statStopped: 'متوقف', statDriving: 'في الطريق', statParked: 'مركون',
+        presetFull: 'اليوم كامل', presetMorning: 'الصباح', presetAfternoon: 'بعد الظهر',
+        fullTripInfo: 'اليوم كامل', filteredInfo: 'مفلتر', gpsPoints: 'نقاط GPS',
+        stopsWord: 'توقفات', vocalesWord: 'تسجيلات',
+        noStops: 'لا توقفات في هذه الفترة.', noDrives: 'لا رحلات في هذه الفترة.',
+        noVocales: 'لا تسجيلات في هذه الفترة.',
+        parked: 'مركون', idle: 'خمول', drive: 'رحلة', vocal: 'تسجيل',
+        playRecording: 'تشغيل التسجيل', carAt: 'التاكسي عند', noGps: 'لا موقع GPS',
+        lblDistance: 'المسافة', lblGpsPoints: 'نقاط GPS', lblTopSpeed: 'السرعة القصوى',
+        lblStops: 'التوقفات', lblParked: 'مركون', lblStopTime: 'وقت التوقف', lblDriveTime: 'وقت القيادة',
+        lblVehicle: 'المركبة', lblVocales: 'التسجيلات',
+        legRoute: 'المسار', legParked: 'مركون', legIdle: 'خمول', legVocal: 'تسجيل صوتي',
+        toggleRoute: 'خط المسار', toggleStops: 'علامات التوقف', toggleParkedOnly: 'المركون فقط',
+        toggleDrives: 'قطاعات الرحلة', toggleVocales: 'علامات التسجيل',
+        popupParked: 'مركون', popupStopped: 'توقف', popupDuration: 'المدة', popupFrom: 'من', popupTo: 'إلى',
+        popupIgnition: 'المحرك', popupOff: 'مطفأ', popupOn: 'شغال',
+        popupDrive: 'رحلة', popupDistance: 'المسافة', popupTopSpeed: 'السرعة القصوى',
+        popupTime: 'الوقت', popupSpeed: 'السرعة', popupIgnitionShort: 'المحرك',
+        popupVocal: 'تسجيل', popupRecorded: 'مسجل', popupLength: 'المدة',
+        popupCarAt: 'التاكسي عند', popupIntervalStart: 'بداية الفترة', popupIntervalEnd: 'نهاية الفترة',
+        ignitionOn: 'شغال', ignitionOff: 'مطفأ'
+      }
+    };
+
+    let lang = localStorage.getItem(LANG_KEY) || 'fr';
+    function t(k) { return (I18N[lang] && I18N[lang][k]) || I18N.fr[k] || k; }
+
+    function setLang(l) {
+      lang = l;
+      localStorage.setItem(LANG_KEY, l);
+      document.documentElement.lang = l === 'ar' ? 'ar' : 'fr';
+      document.body.classList.toggle('rtl', l === 'ar');
+      ['lang-fr', 'lang-ar', 'gate-lang-fr', 'gate-lang-ar'].forEach(id => {
+        const el = $(id);
+        if (el) el.classList.toggle('active', id.endsWith(l));
+      });
+      document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.dataset.i18nPlaceholder);
+      });
+      if (rawData) {
+        buildPresets();
+        if (viewData) { renderMap(); }
+      }
+    }
+
+    function bindLangButtons() {
+      ['lang-fr', 'gate-lang-fr'].forEach(id => { const el = $(id); if (el) el.onclick = () => setLang('fr'); });
+      ['lang-ar', 'gate-lang-ar'].forEach(id => { const el = $(id); if (el) el.onclick = () => setLang('ar'); });
+      setLang(lang);
+    }
+
+    let rawData, viewData, map, layers = {}, positionMarker, playTimer = null, currentIndex = 0;
+    let mapReady = false;
+    let tripBounds = { minMs: 0, maxMs: 0 }, filterStartMs = 0, filterEndMs = 0;
+    let uiBound = false, toggleState = { route: true, stops: true, drives: false, parkedOnly: false, vocales: true };
+    let allVocales = [], viewVocales = [], activeAudio = null;
+
+    const $ = id => document.getElementById(id);
+
+    function parseDate(s) { return new Date(String(s).replace(' ', 'T')); }
+    function isParked(s) { return s.params && s.params.acc === '0'; }
+    function overlaps(startMs, endMs, aStart, aEnd) { return aStart <= endMs && aEnd >= startMs; }
+
+    function timeToInput(ms) {
+      const d = new Date(ms);
+      return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+
+    function inputToMs(timeStr, dayAnchor) {
+      const [h, m] = timeStr.split(':').map(Number);
+      const d = new Date(dayAnchor);
+      d.setHours(h, m, 0, 0);
+      return d.getTime();
+    }
+
+    function formatDuration(sec) {
+      if (sec < 60) return sec + ' S';
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+      if (h) return `${h} H ${m} Min ${s} S`;
+      return `${m} Min ${s} S`;
+    }
+
+    function parseDuration(str) {
+      if (!str) return 0;
+      let sec = 0;
+      const h = str.match(/(\d+)\s*H/i); if (h) sec += +h[1] * 3600;
+      const m = str.match(/(\d+)\s*Min/i); if (m) sec += +m[1] * 60;
+      const s = str.match(/(\d+)\s*S/i); if (s) sec += +s[1];
+      return sec;
+    }
+
+    function haversineKm(a, b) {
+      const R = 6371, toR = x => x * Math.PI / 180;
+      const dLat = toR(+b.lat - +a.lat), dLng = toR(+b.lng - +a.lng);
+      const lat1 = toR(+a.lat), lat2 = toR(+b.lat);
+      const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+      return 2 * R * Math.asin(Math.sqrt(h));
+    }
+
+    function findPositionAtTime(fullRoute, ms) {
+      if (!fullRoute?.length) return null;
+      let best = fullRoute[0], bestDiff = Math.abs(parseDate(best.dt_tracker).getTime() - ms);
+      for (const p of fullRoute) {
+        const d = Math.abs(parseDate(p.dt_tracker).getTime() - ms);
+        if (d < bestDiff) { best = p; bestDiff = d; }
+      }
+      return best;
+    }
+
+    function enrichVocales(manifest, fullRoute) {
+      return (manifest || []).map((v, i) => {
+        const ms = parseDate(v.datetime).getTime();
+        const pt = findPositionAtTime(fullRoute, ms);
+        return {
+          ...v, id: i, ms,
+          lat: pt ? +pt.lat : null,
+          lng: pt ? +pt.lng : null,
+          speed: pt ? pt.speed : null,
+          gpsTime: pt ? pt.dt_tracker : null
+        };
+      });
+    }
+
+    function filterVocales(vocales, startMs, endMs) {
+      return vocales.filter(v => v.ms >= startMs && v.ms <= endMs);
+    }
+
+    function stopActiveAudio() {
+      if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+    }
+
+    function playVocal(v) {
+      stopActiveAudio();
+      activeAudio = new Audio(v.file);
+      activeAudio.play().catch(() => {});
+    }
+
+    function vocalPopup(v) {
+      return `<div class="popup-title">${t('popupVocal')} ${v.label}</div>
+        <div class="popup-row"><strong>${t('popupRecorded')}:</strong> ${v.datetime.slice(11, 16)}</div>
+        <div class="popup-row"><strong>${t('popupLength')}:</strong> ${v.durationLabel}</div>
+        ${v.gpsTime ? `<div class="popup-row"><strong>${t('popupCarAt')}:</strong> ${v.gpsTime} (${v.speed} km/h)</div>` : ''}
+        <audio class="popup-audio" controls preload="none" src="${v.file}"></audio>`;
+    }
+
+    function makeVocalIcon() {
+      return L.divIcon({
+        className: 'vocal-marker',
+        html: '<div class="vocal-pin">🎙</div>',
+        iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15]
+      });
+    }
+
+    function filterData(raw, startMs, endMs) {
+      const fullRoute = raw.route || [];
+      const route = fullRoute.filter(p => {
+        const t = parseDate(p.dt_tracker).getTime();
+        return t >= startMs && t <= endMs;
+      });
+      const stops = (raw.stops || []).filter(s =>
+        overlaps(startMs, endMs, parseDate(s.dt_start).getTime(), parseDate(s.dt_end).getTime())
+      );
+      const drives = (raw.drives || []).filter(d =>
+        overlaps(startMs, endMs, parseDate(d.dt_start).getTime(), parseDate(d.dt_end).getTime())
+      );
+
+      let dist = 0;
+      for (let i = 1; i < route.length; i++) dist += haversineKm(route[i-1], route[i]);
+      const topSpeed = route.reduce((m, p) => Math.max(m, +p.speed || 0), 0);
+      const stopSec = stops.reduce((s, x) => s + parseDuration(x.duration), 0);
+      const driveSec = drives.reduce((s, x) => s + parseDuration(x.duration), 0);
+      const driveDist = drives.reduce((s, x) => s + (+x.route_length || 0), 0);
+
+      return {
+        ...raw, route, stops, drives, _fullRoute: fullRoute,
+        _stats: {
+          distance: Math.round((driveDist || dist) * 100) / 100,
+          topSpeed, stopSec, driveSec,
+          parked: stops.filter(isParked).length
+        }
+      };
+    }
+
+    function stopPopup(stop, i) {
+      const p = isParked(stop);
+      return `<div class="popup-title">${p ? '🅿️ ' + t('popupParked') : '⏸ ' + t('popupStopped')} #${i+1}</div>
+        <div class="popup-row"><strong>${t('popupDuration')}:</strong> ${stop.duration}</div>
+        <div class="popup-row"><strong>${t('popupFrom')}:</strong> ${stop.dt_start}</div>
+        <div class="popup-row"><strong>${t('popupTo')}:</strong> ${stop.dt_end}</div>
+        <div class="popup-row"><strong>${t('popupIgnition')}:</strong> ${p ? t('popupOff') : t('popupOn')}</div>`;
+    }
+
+    function drivePopup(d, i) {
+      return `<div class="popup-title">🚗 ${t('popupDrive')} #${i+1}</div>
+        <div class="popup-row"><strong>${t('popupDuration')}:</strong> ${d.duration}</div>
+        <div class="popup-row"><strong>${d.dt_start}</strong> → ${d.dt_end}</div>
+        <div class="popup-row"><strong>${t('popupDistance')}:</strong> ${d.route_length} km · ${t('popupTopSpeed')} ${d.top_speed} km/h</div>`;
+    }
+
+    function pointPopup(p) {
+      const ign = p.params?.acc === '1' ? t('ignitionOn') : t('ignitionOff');
+      return `<div class="popup-row"><strong>${t('popupTime')}:</strong> ${p.dt_tracker}</div>
+        <div class="popup-row"><strong>${t('popupSpeed')}:</strong> ${p.speed} km/h · ${t('popupIgnitionShort')} ${ign}</div>`;
+    }
+
+    function makeStopIcon(stop, i) {
+      const cls = isParked(stop) ? 'parked' : 'idle';
+      return L.divIcon({
+        className: 'stop-marker',
+        html: `<div class="stop-pin ${cls}"><span>${i+1}</span></div>`,
+        iconSize: [28,28], iconAnchor: [14,28], popupAnchor: [0,-28]
+      });
+    }
+
+    function makeTiles(url, opts) {
+      return L.tileLayer(url, {
+        maxZoom: 19, maxNativeZoom: 19, keepBuffer: 8, updateWhenIdle: false,
+        updateWhenZooming: true, detectRetina: true, crossOrigin: true, ...opts
+      });
+    }
+
+    function initMap() {
+      if (mapReady) return;
+      mapReady = true;
+      map = L.map('map', { zoomControl: true, fadeAnimation: true, zoomAnimationThreshold: 6 })
+        .setView([35.674, 10.087], 13);
+
+      const carto = makeTiles('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd', attribution: '&copy; OSM &copy; CARTO'
+      });
+      const osm = makeTiles('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        subdomains: 'abc', attribution: '&copy; OpenStreetMap'
+      });
+      carto.addTo(map);
+      let switched = false;
+      carto.on('tileerror', () => {
+        if (switched) return;
+        switched = true;
+        map.removeLayer(carto);
+        osm.addTo(map);
+      });
+
+      layers.route = L.layerGroup().addTo(map);
+      layers.stops = L.layerGroup().addTo(map);
+      layers.drives = L.layerGroup();
+      layers.vocales = L.layerGroup().addTo(map);
+      layers.position = L.layerGroup().addTo(map);
+      positionMarker = L.marker([0,0], {
+        icon: L.divIcon({ className: '', html: '<div class="position-dot"></div>', iconSize: [16,16], iconAnchor: [8,8] })
+      });
+
+      requestAnimationFrame(() => map.invalidateSize());
+    }
+
+    function renderMap() {
+      pausePlay();
+      layers.route.clearLayers(); layers.stops.clearLayers(); layers.drives.clearLayers();
+      layers.vocales.clearLayers(); layers.position.clearLayers();
+
+      viewVocales = filterVocales(allVocales, filterStartMs, filterEndMs);
+
+      const route = viewData.route || [];
+      const stops = viewData.stops || [];
+      const drives = viewData.drives || [];
+      const fullRoute = viewData._fullRoute || route;
+      const latlngs = route.map(p => [+p.lat, +p.lng]);
+
+      if (latlngs.length) {
+        if (toggleState.route) {
+          L.polyline(latlngs, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(layers.route);
+          const start = route[0], end = route[route.length - 1];
+          L.marker([+start.lat, +start.lng], {
+            icon: L.divIcon({ className: 'endpoint-marker', html: '<div class="endpoint start">S</div>', iconSize: [32,32], iconAnchor: [16,16] })
+          }).bindPopup(`<div class="popup-title">${t('popupIntervalStart')}</div><div class="popup-row">${start.dt_tracker}</div>`).addTo(layers.route);
+          L.marker([+end.lat, +end.lng], {
+            icon: L.divIcon({ className: 'endpoint-marker', html: '<div class="endpoint end">E</div>', iconSize: [32,32], iconAnchor: [16,16] })
+          }).bindPopup(`<div class="popup-title">${t('popupIntervalEnd')}</div><div class="popup-row">${end.dt_tracker}</div>`).addTo(layers.route);
+        }
+      }
+
+      if (toggleState.stops) {
+        stops.forEach((stop, i) => {
+          if (toggleState.parkedOnly && !isParked(stop)) return;
+          const m = L.marker([+stop.lat, +stop.lng], { icon: makeStopIcon(stop, i) }).bindPopup(stopPopup(stop, i));
+          m._stopIndex = i; m.addTo(layers.stops);
+        });
+      }
+
+      if (toggleState.drives) {
+        drives.forEach((drive, i) => {
+          const seg = fullRoute.slice(drive.id_start, (drive.id_end || 0) + 1).filter(p => {
+            const t = parseDate(p.dt_tracker).getTime();
+            return t >= filterStartMs && t <= filterEndMs;
+          });
+          if (seg.length < 2) return;
+          L.polyline(seg.map(p => [+p.lat, +p.lng]), { color: '#06b6d4', weight: 5, opacity: 0.7 })
+            .bindPopup(drivePopup(drive, i)).addTo(layers.drives);
+        });
+        map.addLayer(layers.drives);
+      } else {
+        map.removeLayer(layers.drives);
+      }
+
+      if (toggleState.vocales) {
+        viewVocales.forEach((v, i) => {
+          if (v.lat == null) return;
+          const m = L.marker([v.lat, v.lng], { icon: makeVocalIcon() }).bindPopup(vocalPopup(v));
+          m._vocalIndex = i;
+          m.on('popupopen', () => stopActiveAudio());
+          m.addTo(layers.vocales);
+        });
+      }
+
+      if (latlngs.length) {
+        requestAnimationFrame(() => {
+          map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40], animate: false, maxZoom: 16 });
+          setTimeout(() => map.invalidateSize({ pan: false }), 150);
+        });
+      }
+      setupTimeline(route);
+      renderLists();
+      renderStats();
+    }
+
+    function renderStats() {
+      const route = viewData.route || [];
+      const stops = viewData.stops || [];
+      const st = viewData._stats || {};
+      const parked = st.parked ?? stops.filter(isParked).length;
+      const fromT = timeToInput(filterStartMs), toT = timeToInput(filterEndMs);
+      const isFull = filterStartMs <= tripBounds.minMs && filterEndMs >= tripBounds.maxMs;
+
+      $('trip-date').textContent = isFull
+        ? (route[0]?.dt_tracker?.slice(0, 10) || '')
+        : `${fromT}–${toT}`;
+
+      const chips = [
+        [`${st.distance ?? '—'} km`, t('statDistance')],
+        [`${st.topSpeed ?? '—'} km/h`, t('statTop')],
+        [`${stops.length} (${parked} ${t('statParked')})`, t('statStops')],
+        [`${viewVocales.length}`, t('statVocales')],
+        [formatDuration(st.stopSec || 0), t('statStopped')],
+        [formatDuration(st.driveSec || 0), t('statDriving')]
+      ];
+      const html = chips.map(([v, k]) => `<span class="stat-chip"><strong>${v}</strong> ${k}</span>`).join('');
+      $('header-stats').innerHTML = html;
+      $('mobile-stats').innerHTML = html;
+
+      $('interval-info').innerHTML = isFull
+        ? `<strong>${t('fullTripInfo')}</strong> · ${route.length} ${t('gpsPoints')} · ${stops.length} ${t('stopsWord')} · ${viewVocales.length} ${t('vocalesWord')}`
+        : `<strong>${t('filteredInfo')}</strong> ${fromT} → ${toT}<br>${route.length} ${t('gpsPoints')} · ${stops.length} ${t('stopsWord')} · ${viewVocales.length} ${t('vocalesWord')}`;
+    }
+
+    function renderLists() {
+      const stops = viewData.stops || [];
+      const drives = viewData.drives || [];
+      const st = viewData._stats || {};
+
+      $('tab-stops').innerHTML = stops.length ? stops.map((s, i) => {
+        const p = isParked(s);
+        return `<div class="list-item" data-stop="${i}"><div class="row1">
+          <span class="tag ${p ? 'parked' : 'idle'}">${p ? t('parked') : t('idle')}</span>
+          <span class="duration">${s.duration}</span></div>
+          <div class="times">${s.dt_start}<br>→ ${s.dt_end}</div>
+          <div class="coords">${s.lat}, ${s.lng}</div></div>`;
+      }).join('') : `<p style="color:var(--muted);font-size:13px">${t('noStops')}</p>`;
+
+      $('tab-drives').innerHTML = drives.length ? drives.map((d, i) =>
+        `<div class="list-item" data-drive="${i}"><div class="row1">
+          <span class="tag drive">${t('drive')}</span><span class="duration">${d.duration}</span></div>
+          <div class="times">${d.dt_start}<br>→ ${d.dt_end}</div>
+          <div class="coords">${d.route_length} km · max ${d.top_speed} km/h</div></div>`
+      ).join('') : `<p style="color:var(--muted);font-size:13px">${t('noDrives')}</p>`;
+
+      $('tab-vocales').innerHTML = viewVocales.length ? viewVocales.map((v, i) =>
+        `<div class="list-item" data-vocal="${i}"><div class="row1">
+          <span class="tag vocal">${t('vocal')}</span><span class="duration">${v.durationLabel}</span></div>
+          <div class="times">${v.label}</div>
+          <div class="coords">${v.gpsTime ? t('carAt') + ' ' + v.gpsTime : t('noGps')}</div>
+          <button type="button" class="play-vocal" data-vocal-play="${i}">${t('playRecording')}</button></div>`
+      ).join('') : `<p style="color:var(--muted);font-size:13px">${t('noVocales')}</p>`;
+
+      $('tab-summary').innerHTML = `
+        <div class="summary-grid">
+          <div class="summary-card"><div class="label">${t('lblDistance')}</div><div class="value">${st.distance ?? '—'} km</div></div>
+          <div class="summary-card"><div class="label">${t('lblGpsPoints')}</div><div class="value">${(viewData.route||[]).length}</div></div>
+          <div class="summary-card"><div class="label">${t('lblTopSpeed')}</div><div class="value">${st.topSpeed ?? '—'} km/h</div></div>
+          <div class="summary-card"><div class="label">${t('lblStops')}</div><div class="value">${stops.length}</div></div>
+          <div class="summary-card"><div class="label">${t('lblParked')}</div><div class="value">${st.parked ?? 0}</div></div>
+          <div class="summary-card"><div class="label">${t('lblStopTime')}</div><div class="value" style="font-size:12px">${formatDuration(st.stopSec||0)}</div></div>
+          <div class="summary-card"><div class="label">${t('lblDriveTime')}</div><div class="value" style="font-size:12px">${formatDuration(st.driveSec||0)}</div></div>
+          <div class="summary-card"><div class="label">${t('lblVehicle')}</div><div class="value" style="font-size:13px">${viewData.name||'—'}</div></div>
+          <div class="summary-card"><div class="label">${t('lblVocales')}</div><div class="value">${viewVocales.length} / ${allVocales.length}</div></div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--route)"></span> ${t('legRoute')}</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--parked)"></span> ${t('legParked')}</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--idle)"></span> ${t('legIdle')}</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--vocal)"></span> ${t('legVocal')}</div>
+        </div>
+        <div class="toggles">
+          <label class="toggle-row"><span>${t('toggleRoute')}</span><input type="checkbox" id="toggle-route" ${toggleState.route?'checked':''}></label>
+          <label class="toggle-row"><span>${t('toggleStops')}</span><input type="checkbox" id="toggle-stops" ${toggleState.stops?'checked':''}></label>
+          <label class="toggle-row"><span>${t('toggleParkedOnly')}</span><input type="checkbox" id="toggle-parked-only" ${toggleState.parkedOnly?'checked':''}></label>
+          <label class="toggle-row"><span>${t('toggleDrives')}</span><input type="checkbox" id="toggle-drives" ${toggleState.drives?'checked':''}></label>
+          <label class="toggle-row"><span>${t('toggleVocales')}</span><input type="checkbox" id="toggle-vocales" ${toggleState.vocales?'checked':''}></label>
+        </div>`;
+    }
+
+    function setupTimeline(route) {
+      const slider = $('time-slider');
+      slider.max = Math.max(0, route.length - 1);
+      slider.value = 0;
+      currentIndex = 0;
+      if (route.length) updatePosition(0, route);
+      else { $('time-display').textContent = '—'; $('speed-display').textContent = ''; positionMarker.remove(); }
+    }
+
+    function updatePosition(i, route) {
+      if (!route?.length) return;
+      currentIndex = i;
+      const p = route[i];
+      positionMarker.setLatLng([+p.lat, +p.lng]);
+      if (!layers.position.hasLayer(positionMarker)) positionMarker.addTo(layers.position);
+      positionMarker.bindPopup(pointPopup(p));
+      $('time-display').textContent = p.dt_tracker;
+      $('speed-display').textContent = `${p.speed} km/h · ${t('popupIgnitionShort')} ${p.params?.acc==='1'?t('ignitionOn'):t('ignitionOff')}`;
+      $('time-slider').value = i;
+    }
+
+    function buildPresets() {
+      const min = tripBounds.minMs, max = tripBounds.maxMs, span = max - min;
+      const presets = [{ id: 'full', label: t('presetFull'), start: min, end: max }];
+      for (let i = 0; i < 4; i++) {
+        const s = min + span * i / 4, e = min + span * (i + 1) / 4;
+        presets.push({ id: 'q' + i, label: timeToInput(s) + '–' + timeToInput(e), start: s, end: e });
+      }
+      const noon = new Date(min); noon.setHours(12, 0, 0, 0);
+      if (noon.getTime() > min && noon.getTime() < max) {
+        presets.push({ id: 'am', label: t('presetMorning'), start: min, end: noon.getTime() });
+        presets.push({ id: 'pm', label: t('presetAfternoon'), start: noon.getTime(), end: max });
+      }
+      $('preset-grid').innerHTML = presets.map(p =>
+        `<button class="preset-btn" data-start="${p.start}" data-end="${p.end}">${p.label}</button>`
+      ).join('');
+    }
+
+    function applyInterval(startMs, endMs) {
+      if (startMs > endMs) [startMs, endMs] = [endMs, startMs];
+      startMs = Math.max(tripBounds.minMs, startMs);
+      endMs = Math.min(tripBounds.maxMs, endMs);
+      filterStartMs = startMs; filterEndMs = endMs;
+      $('interval-from').value = timeToInput(startMs);
+      $('interval-to').value = timeToInput(endMs);
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active',
+        +b.dataset.start === startMs && +b.dataset.end === endMs));
+      viewData = filterData(rawData, startMs, endMs);
+      renderMap();
+    }
+
+    function bindUIOnce() {
+      if (uiBound) return;
+      uiBound = true;
+
+      document.querySelector('.panel-tabs').onclick = e => {
+        const btn = e.target.closest('button[data-tab]');
+        if (!btn) return;
+        document.querySelectorAll('.panel-tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        $('tab-' + btn.dataset.tab).classList.add('active');
+      };
+
+      $('preset-grid').onclick = e => {
+        const btn = e.target.closest('.preset-btn');
+        if (!btn) return;
+        applyInterval(+btn.dataset.start, +btn.dataset.end);
+      };
+
+      $('apply-interval').onclick = () => {
+        const day = new Date(tripBounds.minMs);
+        applyInterval(inputToMs($('interval-from').value, day), inputToMs($('interval-to').value, day));
+      };
+
+      $('reset-interval').onclick = () => applyInterval(tripBounds.minMs, tripBounds.maxMs);
+
+      $('tab-stops').onclick = e => {
+        const el = e.target.closest('[data-stop]');
+        if (!el) return;
+        const stop = viewData.stops[+el.dataset.stop];
+        map.setView([+stop.lat, +stop.lng], 16);
+        layers.stops.eachLayer(m => { if (m._stopIndex === +el.dataset.stop) m.openPopup(); });
+        closePanelMobile();
+      };
+
+      $('tab-drives').onclick = e => {
+        const el = e.target.closest('[data-drive]');
+        if (!el) return;
+        const drive = viewData.drives[+el.dataset.drive];
+        const seg = (viewData._fullRoute || []).slice(drive.id_start, (drive.id_end || 0) + 1)
+          .filter(p => { const t = parseDate(p.dt_tracker).getTime(); return t >= filterStartMs && t <= filterEndMs; });
+        if (seg.length >= 2) map.fitBounds(L.latLngBounds(seg.map(p => [+p.lat, +p.lng])), { padding: [30, 30] });
+        closePanelMobile();
+      };
+
+      $('tab-vocales').onclick = e => {
+        const playBtn = e.target.closest('[data-vocal-play]');
+        if (playBtn) {
+          e.stopPropagation();
+          playVocal(viewVocales[+playBtn.dataset.vocalPlay]);
+          return;
+        }
+        const el = e.target.closest('[data-vocal]');
+        if (!el) return;
+        const v = viewVocales[+el.dataset.vocal];
+        if (v.lat == null) return;
+        map.setView([v.lat, v.lng], 16);
+        layers.vocales.eachLayer(m => { if (m._vocalIndex === +el.dataset.vocal) m.openPopup(); });
+        closePanelMobile();
+      };
+
+      $('tab-summary').onchange = e => {
+        const id = e.target.id;
+        if (id === 'toggle-route') { toggleState.route = e.target.checked; renderMap(); }
+        if (id === 'toggle-stops') { toggleState.stops = e.target.checked; renderMap(); }
+        if (id === 'toggle-parked-only') { toggleState.parkedOnly = e.target.checked; renderMap(); }
+        if (id === 'toggle-drives') { toggleState.drives = e.target.checked; renderMap(); }
+        if (id === 'toggle-vocales') { toggleState.vocales = e.target.checked; renderMap(); }
+      };
+
+      $('fit-btn').onclick = () => {
+        const ll = (viewData.route || []).map(p => [+p.lat, +p.lng]);
+        if (ll.length) map.fitBounds(L.latLngBounds(ll), { padding: [40, 40] });
+      };
+
+      const panel = $('panel'), overlay = $('panel-overlay');
+      $('panel-toggle').onclick = () => {
+        panel.classList.toggle('open');
+        overlay.classList.toggle('visible', panel.classList.contains('open'));
+      };
+      overlay.onclick = closePanelMobile;
+
+      $('timeline-toggle').onclick = () => {
+        $('timeline-bar').classList.toggle('hidden');
+        $('timeline-toggle').classList.toggle('active');
+        setTimeout(() => map.invalidateSize(), 300);
+      };
+
+      $('time-slider').oninput = () => { pausePlay(); updatePosition(+$('time-slider').value, viewData.route); };
+      $('play-btn').onclick = () => {
+        if (playTimer) return;
+        const route = viewData.route || [];
+        playTimer = setInterval(() => {
+          if (currentIndex + 1 >= route.length) { pausePlay(); return; }
+          updatePosition(currentIndex + 1, route);
+          if (currentIndex % 5 === 0) map.panTo([+route[currentIndex].lat, +route[currentIndex].lng], { animate: true, duration: 0.3 });
+        }, 120);
+      };
+      $('pause-btn').onclick = pausePlay;
+    }
+
+    function closePanelMobile() {
+      if (window.innerWidth <= 768) { $('panel').classList.remove('open'); $('panel-overlay').classList.remove('visible'); }
+    }
+
+    function pausePlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } }
+
+    function startApp(data, vocalManifest) {
+      rawData = data;
+      const route = data.route || [];
+      if (!route.length) { $('err-screen').classList.add('show'); return; }
+
+      allVocales = enrichVocales(vocalManifest, route);
+
+      tripBounds.minMs = parseDate(route[0].dt_tracker).getTime();
+      tripBounds.maxMs = parseDate(route[route.length - 1].dt_tracker).getTime();
+      filterStartMs = tripBounds.minMs;
+      filterEndMs = tripBounds.maxMs;
+
+      $('vehicle-name').textContent = data.name || 'Vehicle';
+      $('interval-from').value = timeToInput(tripBounds.minMs);
+      $('interval-to').value = timeToInput(tripBounds.maxMs);
+
+      if (!mapReady) initMap();
+      bindUIOnce();
+      buildPresets();
+      viewData = filterData(rawData, filterStartMs, filterEndMs);
+      $('map-loading').classList.add('hidden');
+      $('app').classList.add('ready');
+      renderMap();
+    }
+
+    function tryUnlock() {
+      const pass = $('gate-pass').value;
+      if (pass === PASSWORD) {
+        sessionStorage.setItem(AUTH_KEY, '1');
+        $('gate-screen').classList.add('hidden');
+        loadAppData();
+      } else {
+        $('gate-error').textContent = t('gateWrong');
+      }
+    }
+
+    function loadAppData() {
       try {
-        const data = JSON.parse(el.textContent);
-        if (data && data.route && data.route.length) startApp(data);
+        const data = window.__TAXI_DATA__;
+        const vocals = window.__VOCALES_DATA__ || [];
+        if (data && data.route && data.route.length) startApp(data, vocals);
         else $('err-screen').classList.add('show');
       } catch (e) {
         $('err-screen').classList.add('show');
       }
-    })();
+    }
+
+    function initGate() {
+      bindLangButtons();
+      $('gate-enter').onclick = tryUnlock;
+      $('gate-pass').onkeydown = e => { if (e.key === 'Enter') tryUnlock(); };
+      if (sessionStorage.getItem(AUTH_KEY) === '1') {
+        $('gate-screen').classList.add('hidden');
+        loadAppData();
+      }
+    }
+
+    function boot() {
+      initMap();
+      initGate();
+    }
+    boot();
   </script>
 </body>
 </html>
