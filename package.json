@@ -1,0 +1,8 @@
+{
+  "name": "487-taxi-map",
+  "private": true,
+  "scripts": {
+    "build": "node build-netlify.js",
+    "dev": "npm run build && npx --yes serve dist -l 3000"
+  }
+}

@@ -1,0 +1,4 @@
+node_modules/
+dist/
+taxi-map.html
+.DS_Store
