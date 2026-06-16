@@ -178,7 +178,49 @@
       margin-top: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
       background: var(--surface2); color: var(--text); font-size: 11px; cursor: pointer; width: 100%;
     }
-    .list-item audio, .popup-audio { width: 100%; margin-top: 8px; height: 32px; }
+    .list-item.vocal-active { background: rgba(236,72,153,.12); border-left: 3px solid var(--vocal); }
+    body.rtl .list-item.vocal-active { border-left: none; border-right: 3px solid var(--vocal); }
+    #vocal-player {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 810;
+      background: rgba(26,35,50,.97); backdrop-filter: blur(10px);
+      border-top: 2px solid var(--vocal); padding: 10px 12px 12px;
+      transform: translateY(100%); transition: transform .25s ease;
+      box-shadow: 0 -4px 24px rgba(236,72,153,.15);
+    }
+    #vocal-player.visible { transform: translateY(0); }
+    #timeline-bar.above-vocal-player { bottom: 118px; }
+    @media (max-width: 768px) {
+      #timeline-bar.above-vocal-player { bottom: calc(128px + env(safe-area-inset-bottom)); }
+      #vocal-player { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+    }
+    .vp-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .vp-title { flex: 1; font-size: 13px; font-weight: 700; color: var(--vocal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vp-close { width: 28px; height: 28px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .vp-row { margin-bottom: 8px; }
+    .vp-row-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; display: block; }
+    .vp-seek-wrap { display: flex; align-items: center; gap: 8px; }
+    .vp-time { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 36px; }
+    .vp-time.end { text-align: right; }
+    .vp-slider {
+      flex: 1; height: 28px; cursor: pointer; accent-color: var(--vocal);
+      -webkit-appearance: none; appearance: none; background: transparent;
+    }
+    .vp-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--border); }
+    .vp-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--vocal); margin-top: -6px; border: 2px solid #fff; box-shadow: 0 1px 6px rgba(0,0,0,.3); }
+    .vp-slider.vp-nav::-webkit-slider-runnable-track { background: linear-gradient(90deg, var(--vocal) 0%, var(--border) 0%); }
+    .vp-controls { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+    .vp-btn {
+      min-width: 40px; height: 40px; padding: 0 10px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text); border-radius: 10px; cursor: pointer; font-size: 15px;
+    }
+    .vp-btn:hover { background: var(--border); }
+    .vp-btn.vp-play-btn { min-width: 52px; background: var(--vocal); border-color: var(--vocal); color: #fff; font-size: 18px; }
+    .vp-btn.vp-speed { font-size: 12px; font-weight: 700; min-width: 44px; }
+    .vp-btn.vp-speed.fast { background: rgba(236,72,153,.25); border-color: var(--vocal); color: #f9a8d4; }
+    .popup-play-btn {
+      margin-top: 8px; width: 100%; padding: 8px; border: none; border-radius: 8px;
+      background: var(--vocal); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
     .mobile-stats { display: none; position: absolute; top: 8px; left: 8px; z-index: 800; flex-direction: column; gap: 4px; pointer-events: none; max-width: calc(100% - 60px); }
     .mobile-stats .stat-chip { font-size: 10px; padding: 3px 6px; background: rgba(26,35,50,.92); backdrop-filter: blur(4px); }
     .panel-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,.45); z-index: 850; }
@@ -259,6 +301,32 @@
           <div class="panel-section" id="tab-summary"></div>
         </div>
       </aside>
+    </div>
+    <div id="vocal-player">
+      <div class="vp-top">
+        <span class="vp-title" id="vp-title">—</span>
+        <button type="button" class="vp-close" id="vp-close" title="Fermer">✕</button>
+      </div>
+      <div class="vp-row">
+        <span class="vp-row-label" data-i18n="vocalNav">Glisser entre les enregistrements</span>
+        <input type="range" id="vocal-nav-slider" class="vp-slider vp-nav" min="0" max="0" value="0" step="1">
+      </div>
+      <div class="vp-row">
+        <span class="vp-row-label" data-i18n="vocalSeek">Position dans l'enregistrement</span>
+        <div class="vp-seek-wrap">
+          <span class="vp-time" id="vp-time-cur">0:00</span>
+          <input type="range" id="vocal-seek-slider" class="vp-slider vp-seek" min="0" max="0" value="0" step="0.1">
+          <span class="vp-time end" id="vp-time-end">0:00</span>
+        </div>
+      </div>
+      <div class="vp-controls">
+        <button type="button" class="vp-btn" id="vp-prev" title="Précédent">⏮</button>
+        <button type="button" class="vp-btn" id="vp-rew">⏪</button>
+        <button type="button" class="vp-btn vp-play-btn" id="vp-play">▶</button>
+        <button type="button" class="vp-btn" id="vp-fwd">⏩</button>
+        <button type="button" class="vp-btn" id="vp-next" title="Suivant">⏭</button>
+        <button type="button" class="vp-btn vp-speed" id="vp-speed">1×</button>
+      </div>
     </div>
     <div id="timeline-bar">
       <div class="timeline-top">
@@ -98534,7 +98602,10 @@
         popupTime: 'Heure', popupSpeed: 'Vitesse', popupIgnitionShort: 'contact',
         popupVocal: 'Vocale', popupRecorded: 'Enregistré', popupLength: 'Durée',
         popupCarAt: 'Taxi à', popupIntervalStart: 'Début plage', popupIntervalEnd: 'Fin plage',
-        ignitionOn: 'allumé', ignitionOff: 'coupé'
+        ignitionOn: 'allumé', ignitionOff: 'coupé',
+        vocalNav: 'Glisser entre les enregistrements', vocalSeek: 'Position dans l\'enregistrement',
+        vocalPlay: 'Écouter', vocalOpenPlayer: 'Ouvrir le lecteur', vocalOf: 'sur',
+        skipBack: '−30s', skipFwd: '+30s'
       },
       ar: {
         gateTitle: 'خريطة التاكسي 487', gateSubtitle: 'أدخل كلمة المرور لعرض المسار',
@@ -98565,7 +98636,10 @@
         popupTime: 'الوقت', popupSpeed: 'السرعة', popupIgnitionShort: 'المحرك',
         popupVocal: 'تسجيل', popupRecorded: 'مسجل', popupLength: 'المدة',
         popupCarAt: 'التاكسي عند', popupIntervalStart: 'بداية الفترة', popupIntervalEnd: 'نهاية الفترة',
-        ignitionOn: 'شغال', ignitionOff: 'مطفأ'
+        ignitionOn: 'شغال', ignitionOff: 'مطفأ',
+        vocalNav: 'اسحب بين التسجيلات', vocalSeek: 'الموضع داخل التسجيل',
+        vocalPlay: 'تشغيل', vocalOpenPlayer: 'فتح المشغّل', vocalOf: 'من',
+        skipBack: '−30ث', skipFwd: '+30ث'
       }
     };
 
@@ -98587,6 +98661,7 @@
       });
       if (rawData) {
         buildPresets();
+        document.querySelectorAll('.vp-row-label[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
         if (viewData) { renderMap(); }
       }
     }
@@ -98601,7 +98676,9 @@
     let mapReady = false;
     let tripBounds = { minMs: 0, maxMs: 0 }, filterStartMs = 0, filterEndMs = 0;
     let uiBound = false, toggleState = { route: true, stops: true, drives: false, parkedOnly: false, vocales: true };
-    let allVocales = [], viewVocales = [], activeAudio = null;
+    let allVocales = [], viewVocales = [];
+    let vocalState = { index: -1, audio: null, speed: 1, seeking: false, navDragging: false };
+    const SPEEDS = [1, 1.5, 2];
 
     const $ = id => document.getElementById(id);
 
@@ -98673,22 +98750,182 @@
       return vocales.filter(v => v.ms >= startMs && v.ms <= endMs);
     }
 
-    function stopActiveAudio() {
-      if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+    function fmtAudioTime(sec) {
+      if (!isFinite(sec) || sec < 0) sec = 0;
+      const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+      return m + ':' + String(s).padStart(2, '0');
+    }
+
+    function destroyVocalAudio() {
+      if (!vocalState.audio) return;
+      vocalState.audio.pause();
+      vocalState.audio.removeEventListener('timeupdate', onVocalTimeUpdate);
+      vocalState.audio.removeEventListener('loadedmetadata', onVocalMetadata);
+      vocalState.audio.removeEventListener('ended', onVocalEnded);
+      vocalState.audio = null;
+    }
+
+    function onVocalTimeUpdate() {
+      if (vocalState.seeking || !vocalState.audio) return;
+      const a = vocalState.audio;
+      $('vocal-seek-slider').value = a.currentTime;
+      $('vp-time-cur').textContent = fmtAudioTime(a.currentTime);
+      updateNavTrackFill();
+    }
+
+    function onVocalMetadata() {
+      if (!vocalState.audio) return;
+      const dur = vocalState.audio.duration || 0;
+      const seek = $('vocal-seek-slider');
+      seek.max = dur;
+      $('vp-time-end').textContent = fmtAudioTime(dur);
+    }
+
+    function onVocalEnded() {
+      if (vocalState.index < viewVocales.length - 1) loadVocalAtIndex(vocalState.index + 1, true);
+      else updateVocalPlayBtn();
+    }
+
+    function updateNavTrackFill() {
+      const nav = $('vocal-nav-slider');
+      if (!nav || !viewVocales.length) return;
+      const pct = viewVocales.length > 1 ? (+nav.value / (viewVocales.length - 1)) * 100 : 0;
+      nav.style.background = `linear-gradient(90deg, var(--vocal) ${pct}%, var(--border) ${pct}%)`;
+    }
+
+    function updateVocalPlayBtn() {
+      const btn = $('vp-play');
+      if (!btn || !vocalState.audio) return;
+      btn.textContent = vocalState.audio.paused ? '▶' : '⏸';
+    }
+
+    function highlightVocalInList() {
+      document.querySelectorAll('#tab-vocales .list-item').forEach((el, i) => {
+        el.classList.toggle('vocal-active', i === vocalState.index);
+      });
+    }
+
+    function updateVocalPlayerChrome() {
+      const bar = $('vocal-player');
+      const timeline = $('timeline-bar');
+      if (!bar) return;
+      const on = vocalState.index >= 0 && viewVocales.length > 0;
+      bar.classList.toggle('visible', on);
+      timeline.classList.toggle('above-vocal-player', on);
+      if (on) setTimeout(() => map?.invalidateSize({ pan: false }), 280);
+    }
+
+    function updateVocalPlayerUI() {
+      const v = viewVocales[vocalState.index];
+      if (!v) return;
+      $('vp-title').textContent = `${v.label} · ${v.durationLabel}`;
+      const nav = $('vocal-nav-slider');
+      nav.max = Math.max(0, viewVocales.length - 1);
+      nav.value = vocalState.index;
+      $('vp-speed').textContent = vocalState.speed + '×';
+      $('vp-speed').classList.toggle('fast', vocalState.speed > 1);
+      $('vp-rew').textContent = t('skipBack');
+      $('vp-fwd').textContent = t('skipFwd');
+      updateNavTrackFill();
+      highlightVocalInList();
+      updateVocalPlayerChrome();
+      updateVocalPlayBtn();
+    }
+
+    function loadVocalAtIndex(i, autoplay) {
+      if (!viewVocales.length || i < 0 || i >= viewVocales.length) return;
+      vocalState.index = i;
+      const v = viewVocales[i];
+      destroyVocalAudio();
+      vocalState.audio = new Audio(v.file);
+      vocalState.audio.playbackRate = vocalState.speed;
+      vocalState.audio.addEventListener('timeupdate', onVocalTimeUpdate);
+      vocalState.audio.addEventListener('loadedmetadata', onVocalMetadata);
+      vocalState.audio.addEventListener('ended', onVocalEnded);
+      $('vocal-seek-slider').value = 0;
+      $('vp-time-cur').textContent = '0:00';
+      updateVocalPlayerUI();
+      if (v.lat != null && map) {
+        map.setView([v.lat, v.lng], Math.max(map.getZoom(), 15));
+        layers.vocales?.eachLayer(m => { if (m._vocalIndex === i) m.openPopup(); });
+      }
+      if (autoplay) vocalState.audio.play().then(updateVocalPlayBtn).catch(() => {});
     }
 
     function playVocal(v) {
-      stopActiveAudio();
-      activeAudio = new Audio(v.file);
-      activeAudio.play().catch(() => {});
+      const i = viewVocales.indexOf(v);
+      if (i >= 0) loadVocalAtIndex(i, true);
     }
 
-    function vocalPopup(v) {
+    function closeVocalPlayer() {
+      destroyVocalAudio();
+      vocalState.index = -1;
+      highlightVocalInList();
+      updateVocalPlayerChrome();
+    }
+
+    function toggleVocalPlay() {
+      if (!vocalState.audio) {
+        if (viewVocales.length) loadVocalAtIndex(0, true);
+        return;
+      }
+      if (vocalState.audio.paused) vocalState.audio.play().then(updateVocalPlayBtn);
+      else { vocalState.audio.pause(); updateVocalPlayBtn(); }
+    }
+
+    function skipVocal(sec) {
+      if (!vocalState.audio) return;
+      vocalState.audio.currentTime = Math.max(0, Math.min(vocalState.audio.duration || 0, vocalState.audio.currentTime + sec));
+      onVocalTimeUpdate();
+    }
+
+    function cycleVocalSpeed() {
+      const idx = SPEEDS.indexOf(vocalState.speed);
+      vocalState.speed = SPEEDS[(idx + 1) % SPEEDS.length];
+      if (vocalState.audio) vocalState.audio.playbackRate = vocalState.speed;
+      updateVocalPlayerUI();
+    }
+
+    function bindVocalPlayerOnce() {
+      if (bindVocalPlayerOnce.done) return;
+      bindVocalPlayerOnce.done = true;
+      $('vp-close').onclick = closeVocalPlayer;
+      $('vp-play').onclick = toggleVocalPlay;
+      $('vp-prev').onclick = () => { if (vocalState.index > 0) loadVocalAtIndex(vocalState.index - 1, true); };
+      $('vp-next').onclick = () => { if (vocalState.index < viewVocales.length - 1) loadVocalAtIndex(vocalState.index + 1, true); };
+      $('vp-rew').onclick = () => skipVocal(-30);
+      $('vp-fwd').onclick = () => skipVocal(30);
+      $('vp-speed').onclick = cycleVocalSpeed;
+
+      const seek = $('vocal-seek-slider');
+      seek.onpointerdown = () => { vocalState.seeking = true; };
+      seek.onpointerup = () => { vocalState.seeking = false; };
+      seek.oninput = () => {
+        if (vocalState.audio) {
+          vocalState.audio.currentTime = +seek.value;
+          $('vp-time-cur').textContent = fmtAudioTime(+seek.value);
+        }
+      };
+
+      const nav = $('vocal-nav-slider');
+      nav.onpointerdown = () => { vocalState.navDragging = true; };
+      nav.onpointerup = () => { vocalState.navDragging = false; };
+      nav.oninput = () => {
+        updateNavTrackFill();
+        const idx = +nav.value;
+        if (vocalState.navDragging) loadVocalAtIndex(idx, false);
+      };
+      nav.onchange = () => loadVocalAtIndex(+nav.value, true);
+    }
+
+    function stopActiveAudio() { closeVocalPlayer(); }
+
+    function vocalPopup(v, i) {
       return `<div class="popup-title">${t('popupVocal')} ${v.label}</div>
         <div class="popup-row"><strong>${t('popupRecorded')}:</strong> ${v.datetime.slice(11, 16)}</div>
         <div class="popup-row"><strong>${t('popupLength')}:</strong> ${v.durationLabel}</div>
         ${v.gpsTime ? `<div class="popup-row"><strong>${t('popupCarAt')}:</strong> ${v.gpsTime} (${v.speed} km/h)</div>` : ''}
-        <audio class="popup-audio" controls preload="none" src="${v.file}"></audio>`;
+        <button type="button" class="popup-play-btn" data-vocal-popup="${i}">${t('vocalOpenPlayer')}</button>`;
     }
 
     function makeVocalIcon() {
@@ -98852,9 +99089,12 @@
       if (toggleState.vocales) {
         viewVocales.forEach((v, i) => {
           if (v.lat == null) return;
-          const m = L.marker([v.lat, v.lng], { icon: makeVocalIcon() }).bindPopup(vocalPopup(v));
+          const m = L.marker([v.lat, v.lng], { icon: makeVocalIcon() }).bindPopup(vocalPopup(v, i));
           m._vocalIndex = i;
-          m.on('popupopen', () => stopActiveAudio());
+          m.on('popupopen', (e) => {
+            const btn = e.popup.getElement()?.querySelector('[data-vocal-popup]');
+            if (btn) btn.onclick = () => loadVocalAtIndex(+btn.dataset.vocalPopup, true);
+          });
           m.addTo(layers.vocales);
         });
       }
@@ -98921,12 +99161,19 @@
       ).join('') : `<p style="color:var(--muted);font-size:13px">${t('noDrives')}</p>`;
 
       $('tab-vocales').innerHTML = viewVocales.length ? viewVocales.map((v, i) =>
-        `<div class="list-item" data-vocal="${i}"><div class="row1">
+        `<div class="list-item${i === vocalState.index ? ' vocal-active' : ''}" data-vocal="${i}"><div class="row1">
           <span class="tag vocal">${t('vocal')}</span><span class="duration">${v.durationLabel}</span></div>
           <div class="times">${v.label}</div>
           <div class="coords">${v.gpsTime ? t('carAt') + ' ' + v.gpsTime : t('noGps')}</div>
-          <button type="button" class="play-vocal" data-vocal-play="${i}">${t('playRecording')}</button></div>`
+          <button type="button" class="play-vocal" data-vocal-play="${i}">${t('vocalPlay')}</button></div>`
       ).join('') : `<p style="color:var(--muted);font-size:13px">${t('noVocales')}</p>`;
+
+      const nav = $('vocal-nav-slider');
+      if (nav) {
+        nav.max = Math.max(0, viewVocales.length - 1);
+        if (vocalState.index >= viewVocales.length) closeVocalPlayer();
+        else if (vocalState.index >= 0) updateVocalPlayerUI();
+      }
 
       $('tab-summary').innerHTML = `
         <div class="summary-grid">
@@ -99055,17 +99302,19 @@
         const playBtn = e.target.closest('[data-vocal-play]');
         if (playBtn) {
           e.stopPropagation();
-          playVocal(viewVocales[+playBtn.dataset.vocalPlay]);
+          loadVocalAtIndex(+playBtn.dataset.vocalPlay, true);
           return;
         }
         const el = e.target.closest('[data-vocal]');
         if (!el) return;
-        const v = viewVocales[+el.dataset.vocal];
+        const idx = +el.dataset.vocal;
+        loadVocalAtIndex(idx, true);
+        const v = viewVocales[idx];
         if (v.lat == null) return;
-        map.setView([v.lat, v.lng], 16);
-        layers.vocales.eachLayer(m => { if (m._vocalIndex === +el.dataset.vocal) m.openPopup(); });
         closePanelMobile();
       };
+
+      bindVocalPlayerOnce();
 
       $('tab-summary').onchange = e => {
         const id = e.target.id;
